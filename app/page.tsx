@@ -1,22 +1,25 @@
 import Image from 'next/image';
 import AlbumCard from '@/components/AlbumCard';
+import { dbConnect } from '@/lib/dbConnect'; // Direct DB connection
+import Story from '@/lib/models/Story'; // Direct Model use
 
-// --- SMART URL SYSTEM ---
-// Localhost par 'http://127.0.0.1:3000' lega, Netlify par jo set karoge wo lega.
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3000';
-
+// --- 1. DATA FETCHING (DIRECT DB ACCESS) ---
+// Ab hum fetch() use nahi kar rahe, seedha DB se maang rahe hain.
 async function getStories() {
   try {
-    const res = await fetch(`${API_BASE}/api/stories`, {  // <--- Dynamic URL
-      cache: 'no-store',
-      next: { tags: ['stories'] }
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch (error) { return []; }
+    await dbConnect();
+    // Plain JavaScript objects return karne ke liye .lean() use karte hain
+    // JSON.parse(JSON.stringify(...)) isliye chahiye kyunki MongoDB ke IDs object hote hain, string nahi
+    const stories = await Story.find({}).sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(stories));
+  } catch (error) {
+    console.error("Database Error:", error);
+    return [];
+  }
 }
 
 export default async function Home() {
+  // --- 2. LOGIC (Same as before) ---
   const allStories: any[] = await getStories();
 
   const coverStory = allStories.find((s) => s.type === 'cover');
@@ -27,7 +30,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[#FAF9F6] text-[#292524] overflow-x-hidden">
       
-      {/* === 1. HERO SECTION === */}
+      {/* === HERO SECTION === */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center text-center">
         <div className="absolute inset-0 z-0">
           <div className="relative w-full h-full">
@@ -50,52 +53,40 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* === 2. FEATURED STORY === */}
+      {/* === FEATURED STORY === */}
       {featuredStory && (
         <section className="py-20 md:py-32 px-4 md:px-6 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
-            
             <div className="order-2 lg:order-1 space-y-6 md:space-y-8">
               <div className="flex items-center gap-4">
                 <span className="h-px w-12 md:w-16 bg-amber-700"></span>
                 <span className="text-amber-700 font-serif italic text-lg md:text-xl uppercase tracking-widest">Featured Memory</span>
               </div>
-              
               <div className="flex flex-wrap items-center gap-3 md:gap-5">
-                <h2 className="font-serif text-4xl md:text-6xl text-[#292524] leading-tight capitalize inline">
-                  {featuredStory.title}
-                </h2>
-                {/* Fixed Typography: Same Style for Category */}
-                <span className="font-serif text-4xl md:text-6xl text-[#292524] leading-tight capitalize inline">
-                  {featuredStory.category}
-                </span>
+                <h2 className="font-serif text-4xl md:text-6xl text-[#292524] leading-tight capitalize inline">{featuredStory.title}</h2>
+                <span className="font-serif text-4xl md:text-6xl text-[#292524] leading-tight capitalize inline">{featuredStory.category}</span>
               </div>
-              
               <div className="prose prose-lg md:prose-xl text-stone-600 font-serif leading-relaxed italic border-l-4 border-amber-200 pl-4 md:pl-6">
                 <p>"{featuredStory.description}"</p>
               </div>
             </div>
-
             <div className="order-1 lg:order-2 flex justify-center perspective-1000">
               <div className="relative group cursor-pointer transition-all duration-700 ease-out hover:scale-105">
                 <div className="bg-white p-3 md:p-4 pb-12 md:pb-16 shadow-2xl rotate-2 md:rotate-3 transition-transform duration-500 group-hover:rotate-0 border border-stone-100">
                   <div className="relative aspect-[4/5] w-[280px] md:w-[450px] overflow-hidden bg-stone-200">
                     <Image src={featuredStory.imageUrl} alt="feat" fill className="object-cover filter sepia-[0.2] group-hover:sepia-0 transition-all duration-700" />
                   </div>
-                  <p className="absolute bottom-3 right-5 font-serif italic text-stone-400 text-lg md:text-2xl rotate-[-2deg]">
-                    A moment in time...
-                  </p>
+                  <p className="absolute bottom-3 right-5 font-serif italic text-stone-400 text-lg md:text-2xl rotate-[-2deg]">A moment in time...</p>
                 </div>
               </div>
             </div>
-
           </div>
         </section>
       )}
 
-      {/* === 3. ALBUM GRID === */}
+      {/* === ALBUM GRID === */}
       <section className="py-20 md:py-32 px-4 md:px-6 bg-[#F2F0E6] relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 md:mb-24">
@@ -121,9 +112,7 @@ export default async function Home() {
       <section className="py-16 md:py-24 bg-neutral-900 text-[#FAF9F6] text-center px-4">
         <div className="max-w-3xl mx-auto">
           <div className="mb-6 text-amber-500 text-3xl">❦</div>
-          <p className="font-serif text-2xl md:text-5xl italic leading-tight mb-8 opacity-90">
-            "We didn't realize we were making memories, we just knew we were having fun."
-          </p>
+          <p className="font-serif text-2xl md:text-5xl italic leading-tight mb-8 opacity-90">"We didn't realize we were making memories, we just knew we were having fun."</p>
           <div className="h-px w-16 bg-stone-600 mx-auto mb-6"></div>
           <p className="text-[10px] md:text-xs tracking-[0.3em] uppercase opacity-60">Forever in our Hearts</p>
         </div>
