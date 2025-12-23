@@ -1,15 +1,14 @@
 import Image from 'next/image';
 import AlbumCard from '@/components/AlbumCard';
-import { dbConnect } from '@/lib/dbConnect'; // Direct DB connection
-import Story from '@/lib/models/Story'; // Direct Model use
+import { dbConnect } from '@/lib/dbConnect';
+import Story from '@/lib/models/Story';
 
-// --- 1. DATA FETCHING (DIRECT DB ACCESS) ---
-// Ab hum fetch() use nahi kar rahe, seedha DB se maang rahe hain.
+// --- SMART URL SYSTEM ---
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3000';
+
 async function getStories() {
   try {
     await dbConnect();
-    // Plain JavaScript objects return karne ke liye .lean() use karte hain
-    // JSON.parse(JSON.stringify(...)) isliye chahiye kyunki MongoDB ke IDs object hote hain, string nahi
     const stories = await Story.find({}).sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(stories));
   } catch (error) {
@@ -19,7 +18,6 @@ async function getStories() {
 }
 
 export default async function Home() {
-  // --- 2. LOGIC (Same as before) ---
   const allStories: any[] = await getStories();
 
   const coverStory = allStories.find((s) => s.type === 'cover');
@@ -30,11 +28,20 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[#FAF9F6] text-[#292524] overflow-x-hidden">
       
-      {/* === HERO SECTION === */}
-      <section className="relative h-screen w-full overflow-hidden flex items-center justify-center text-center">
+      {/* === 1. HERO SECTION (Mobile Zoom Fixed) === */}
+      {/* Change 1: h-screen ki jagah h-[100dvh] use kiya (Mobile browser bar fix ke liye) */}
+      <section className="relative h-[100dvh] w-full overflow-hidden flex items-center justify-center text-center">
         <div className="absolute inset-0 z-0">
-          <div className="relative w-full h-full">
-            <Image src={coverImage} alt="Cover" fill className="object-cover opacity-90" priority />
+          {/* Change 2: 'md:' lagaya taaki animation sirf laptop par ho, mobile par nahi */}
+          <div className="relative w-full h-full md:transition-transform md:duration-[10s] md:ease-in-out md:hover:scale-110">
+            <Image 
+              src={coverImage} 
+              alt="Cover" 
+              fill 
+              /* Change 3: object-center add kiya taaki photo beech se dikhe */
+              className="object-cover object-center opacity-90" 
+              priority 
+            />
           </div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/70"></div>
         </div>
@@ -53,7 +60,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* === FEATURED STORY === */}
+      {/* === 2. FEATURED STORY === */}
       {featuredStory && (
         <section className="py-20 md:py-32 px-4 md:px-6 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
@@ -86,7 +93,7 @@ export default async function Home() {
         </section>
       )}
 
-      {/* === ALBUM GRID === */}
+      {/* === 3. ALBUM GRID === */}
       <section className="py-20 md:py-32 px-4 md:px-6 bg-[#F2F0E6] relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 md:mb-24">
