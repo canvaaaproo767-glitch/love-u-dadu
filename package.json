@@ -2,7 +2,7 @@
   "name": "di-magazine-frontend",
   "version": "0.1.0",
   "private": true,
- "scripts": {
+  "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "lucide-react": "^0.562.0",
+    "mongoose": "^9.0.2",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"
